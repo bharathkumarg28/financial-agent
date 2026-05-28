@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Financial Agent India</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --bs-body-bg: #1a1d21; --bs-body-color: #e9ecef; }
+        body { background: linear-gradient(135deg, #1a1d21 0%, #2d3436 100%); min-height: 100vh; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .card-header { background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .form-control, .form-select { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #e9ecef; }
+        .form-control:focus, .form-select:focus { background: rgba(255,255,255,0.15); border-color: #0d6efd; color: #e9ecef; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
+        .form-text { color: #adb5bd; }
+        .btn-primary { background: linear-gradient(45deg, #0d6efd, #0056b3); border: none; }
+        .btn-primary:hover { background: linear-gradient(45deg, #0056b3, #004085); }
+        .invalid-feedback { color: #ff6b6b; }
+        .password-strength { height: 5px; border-radius: 3px; transition: all 0.3s ease; }
+        .password-strength-weak { background: #dc3545; width: 33%; }
+        .password-strength-medium { background: #ffc107; width: 66%; }
+        .password-strength-strong { background: #198754; width: 100%; }
+        
+        /* Enhanced Personal Information Section */
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .section-header h5 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .form-label {
+            color: #e9ecef;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .form-control::placeholder {
+            color: #6c757d;
+            opacity: 0.7;
+        }
+        
+        .alert {
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body class="d-flex flex-column">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container py-4 flex-grow-1">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0 text-center text-white">Create Your Account</h3>
+                    <p class="text-center mb-0" style="color: #e9ecef; font-size: 16px;">Join Financial Agent India and start trading with AngelOne
+                        SmartAPI</p>
+                </div>
+                <div class="card-body">
+                    <form id="registrationForm" th:action="@{/register}" th:object="${userRegistrationDto}"
+                          method="post">
+                        <!-- Personal Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="section-header">
+                                    <h5><i class="fas fa-user me-2"></i>Personal Information</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="username" th:field="*{username}" required>
+                                <div class="invalid-feedback" th:errors="*{username}"></div>
+                                <div class="form-text">Choose a unique username (letters, numbers, underscores only)
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="email" th:field="*{email}" required>
+                                <div class="invalid-feedback" th:errors="*{email}"></div>
+                                <div class="form-text">We'll never share your email with anyone else</div>
+                            </div>
+                            <div class="col-md-6 mt-3">
+                                <label for="firstName" class="form-label">First Name *</label>
+                                <input type="text" class="form-control" id="firstName" th:field="*{firstName}" required>
+                                <div class="invalid-feedback" th:errors="*{firstName}"></div>
+                            </div>
+                            <div class="col-md-6 mt-3">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="lastName" th:field="*{lastName}">
+                            </div>
+                            <div class="col-md-6 mt-3">
+                                <label for="phoneNumber" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phoneNumber" th:field="*{phoneNumber}"
+                                       placeholder="+919876543210">
+                                <div class="invalid-feedback" th:errors="*{phoneNumber}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Password Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="section-header">
+                                    <h5><i class="fas fa-shield-alt me-2"></i>Account Security</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="password" class="form-label">Password *</label>
+                                <input type="password" class="form-control" id="password" th:field="*{password}"
+                                       required>
+                                <div class="invalid-feedback" th:errors="*{password}"></div>
+                                <div class="form-text">Must contain uppercase, lowercase, and numbers (min 6
+                                    characters)
+                                </div>
+                                <div class="password-strength mt-2" id="passwordStrength"></div>
+                            </div>
+                            <div class="col-md-6 mt-3 mt-md-0">
+                                <label for="confirmPassword" class="form-label">Confirm Password *</label>
+                                <input type="password" class="form-control" id="confirmPassword"
+                                       th:field="*{confirmPassword}" required>
+                                <div class="invalid-feedback" th:errors="*{confirmPassword}"></div>
+                                <div class="form-text" id="passwordMatch"></div>
+                            </div>
+                        </div>
+
+                        <!-- AngelOne Credentials -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="section-header">
+                                    <h5><i class="fas fa-key me-2"></i>AngelOne SmartAPI Credentials</h5>
+                                </div>
+                                <div class="alert alert-info">
+                                    <small class="d-block">
+                                        <strong>Note:</strong> These credentials are encrypted and stored securely in
+                                        our database.
+                                        Get them from your AngelOne SmartAPI dashboard.
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="angelOneApiKey" class="form-label">API Key *</label>
+                                <input type="text" class="form-control" id="angelOneApiKey" th:field="*{angelOneApiKey}"
+                                       required>
+                                <div class="invalid-feedback" th:errors="*{angelOneApiKey}"></div>
+                                <div class="form-text">Your AngelOne SmartAPI key</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="angelOneClientId" class="form-label">Client ID *</label>
+                                <input type="text" class="form-control" id="angelOneClientId"
+                                       th:field="*{angelOneClientId}" required>
+                                <div class="invalid-feedback" th:errors="*{angelOneClientId}"></div>
+                                <div class="form-text">Your AngelOne client ID</div>
+                            </div>
+                            <div class="col-md-6 mt-3">
+                                <label for="angelOnePassword" class="form-label">AngelOne Password *</label>
+                                <input type="password" class="form-control" id="angelOnePassword"
+                                       th:field="*{angelOnePassword}" required>
+                                <div class="invalid-feedback" th:errors="*{angelOnePassword}"></div>
+                                <div class="form-text">Your AngelOne account password</div>
+                            </div>
+                            <div class="col-md-6 mt-3">
+                                <label for="angelOneTotpSecret" class="form-label">TOTP Secret *</label>
+                                <input type="password" class="form-control" id="angelOneTotpSecret"
+                                       th:field="*{angelOneTotpSecret}" required>
+                                <div class="invalid-feedback" th:errors="*{angelOneTotpSecret}"></div>
+                                <div class="form-text">Base32 TOTP secret from AngelOne SmartAPI</div>
+                            </div>
+                        </div>
+
+                        <!-- Terms and Conditions -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="agreeToTerms"
+                                           th:field="*{agreeToTerms}" required>
+                                    <label class="form-check-label" for="agreeToTerms">
+                                        I agree to the <a href="#" class="text-primary">Terms and Conditions</a> and <a
+                                            href="#" class="text-primary">Privacy Policy</a> *
+                                    </label>
+                                    <div class="invalid-feedback" th:errors="*{agreeToTerms}"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
+                                        <span id="registerBtnText">Create Account</span>
+                                        <span id="registerSpinner"
+                                              class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                                    </button>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <span style="color: #adb5bd;">Already have an account? </span>
+                                    <a href="/login" class="text-primary">Sign In</a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registrationForm');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const passwordStrength = document.getElementById('passwordStrength');
+        const passwordMatch = document.getElementById('passwordMatch');
+        const registerBtn = document.getElementById('registerBtn');
+        const registerBtnText = document.getElementById('registerBtnText');
+        const registerSpinner = document.getElementById('registerSpinner');
+
+        // Password strength checker
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            const strength = checkPasswordStrength(password);
+
+            passwordStrength.className = 'password-strength mt-2';
+            if (password.length > 0) {
+                passwordStrength.classList.add('password-strength-' + strength);
+            }
+
+            checkPasswordMatch();
+        });
+
+        // Confirm password checker
+        confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+
+        function checkPasswordStrength(password) {
+            let strength = 0;
+
+            if (password.length >= 6) strength++;
+            if (password.length >= 10) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+
+            if (strength <= 2) return 'weak';
+            if (strength <= 4) return 'medium';
+            return 'strong';
+        }
+
+        function checkPasswordMatch() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (confirmPassword.length > 0) {
+                if (password === confirmPassword) {
+                    passwordMatch.textContent = 'Passwords match ✓';
+                    passwordMatch.className = 'form-text text-success';
+                } else {
+                    passwordMatch.textContent = 'Passwords do not match ✗';
+                    passwordMatch.className = 'form-text text-danger';
+                }
+            } else {
+                passwordMatch.textContent = '';
+                passwordMatch.className = 'form-text';
+            }
+        }
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            // Show loading state
+            registerBtn.disabled = true;
+            registerBtnText.textContent = 'Creating Account...';
+            registerSpinner.classList.remove('d-none');
+
+            try {
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Registration successful! Redirecting to login...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    showToast(result.error || 'Registration failed', 'danger');
+                }
+            } catch (error) {
+                showToast('An error occurred. Please try again.', 'danger');
+                console.error('Registration error:', error);
+            } finally {
+                // Reset button state
+                registerBtn.disabled = false;
+                registerBtnText.textContent = 'Create Account';
+                registerSpinner.classList.add('d-none');
+            }
+        });
+
+        function validateForm() {
+            let isValid = true;
+
+            // Check password match
+            if (passwordInput.value !== confirmPasswordInput.value) {
+                showToast('Passwords do not match', 'warning');
+                isValid = false;
+            }
+
+            // Check terms agreement
+            const agreeToTerms = document.getElementById('agreeToTerms');
+            if (!agreeToTerms.checked) {
+                showToast('Please agree to the terms and conditions', 'warning');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Real-time validation
+        const inputs = form.querySelectorAll('input[required]');
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                validateField(this);
+            });
+        });
+
+        function validateField(field) {
+            const value = field.value.trim();
+            let isValid = true;
+            let message = '';
+
+            if (!value) {
+                isValid = false;
+                message = 'This field is required';
+            } else {
+                // Specific validations
+                switch(field.id) {
+                    case 'email':
+                        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                            isValid = false;
+                            message = 'Please enter a valid email address';
+                        }
+                        break;
+                    case 'username':
+                        if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+                            isValid = false;
+                            message = 'Username can only contain letters, numbers, and underscores';
+                        }
+                        break;
+                    case 'phoneNumber':
+                        if (value && !/^[+]?[0-9]{10,15}$/.test(value)) {
+                            isValid = false;
+                            message = 'Please enter a valid phone number';
+                        }
+                        break;
+                }
+            }
+
+            // Update UI
+            field.classList.remove('is-valid', 'is-invalid');
+            if (value) {
+                field.classList.add(isValid ? 'is-valid' : 'is-invalid');
+            }
+
+            // Show feedback
+            const feedback = field.parentNode.querySelector('.invalid-feedback');
+            if (feedback && message) {
+                feedback.textContent = message;
+            }
+        }
+    });
+</script>
+</body>
+</html>

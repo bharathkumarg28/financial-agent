@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Agent India - Watchlist</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <style>
+        :root {
+            --bs-body-bg: #1a1d21;
+            --bs-body-color: #e9ecef;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1d21 0%, #2d3436 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        .card-header {
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .price-up {
+            color: #00ff88;
+        }
+        .price-down {
+            color: #ff4757;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .loading-spinner.active {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container py-4 flex-grow-1">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold text-gradient">Watchlist</h1>
+            <p class="text-muted">Track your favorite stocks with real-time price updates</p>
+        </div>
+    </div>
+
+    <!-- Add Stock Form with Search -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Add Stock to Watchlist</h5>
+                    <button class="btn btn-sm btn-outline-info" id="toggleSearchBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        Search Stocks
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Search Section -->
+                    <div id="searchSection" class="mb-4" style="display: none;">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="searchInput" class="form-label">Search Stocks</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Search by symbol or name (e.g., RELIANCE, TCS, Infosys)">
+                                    <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <path d="m21 21-4.35-4.35"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-text text-muted">
+                                    Click on a result to add it to your watchlist
+                                </div>
+                            </div>
+                        </div>
+                        <div id="searchResults" class="mt-3" style="display: none;">
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover mb-0">
+                                    <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Name</th>
+                                        <th>Token</th>
+                                        <th>Exchange</th>
+                                        <th>Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="searchResultsBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual Add Form -->
+                    <form id="addStockForm" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="symbol" class="form-label">Symbol</label>
+                            <input type="text" class="form-control" id="symbol" placeholder="e.g., RELIANCE" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="token" class="form-label">Token</label>
+                            <input type="text" class="form-control" id="token" placeholder="e.g., 2885" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="exchange" class="form-label">Exchange</label>
+                            <select class="form-select" id="exchange">
+                                <option value="NSE">NSE</option>
+                                <option value="BSE">BSE</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="name" class="form-label">Name (Optional)</label>
+                            <input type="text" class="form-control" id="name" placeholder="e.g., Reliance Industries">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <span class="spinner-border spinner-border-sm loading-spinner" role="status"></span>
+                                <span>Add Stock</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Watchlist Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">My Watchlist</h5>
+                    <div>
+                        <button id="refreshPricesBtn" class="btn btn-sm btn-outline-success me-2">
+                            <span class="spinner-border spinner-border-sm loading-spinner" role="status"></span>
+                            Refresh Prices
+                        </button>
+                        <span id="watchlistCount" class="badge bg-secondary">0 stocks</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0" id="watchlistTable">
+                            <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Name</th>
+                                <th>Last Price</th>
+                                <th>Change %</th>
+                                <th>Day High</th>
+                                <th>Day Low</th>
+                                <th>Volume</th>
+                                <th>Target</th>
+                                <th>Stop Loss</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="watchlistBody">
+                            <tr>
+                                <td colspan="10" class="text-center text-muted">Loading watchlist...</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background: rgba(45, 52, 54, 0.95); border: 1px solid rgba(255,255,255,0.1);">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title">Edit Watchlist Item</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        <input type="hidden" id="editSymbol">
+                        <div class="mb-3">
+                            <label for="editNotes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="editNotes" rows="3" placeholder="Add your notes..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTargetPrice" class="form-label">Target Price</label>
+                            <input type="number" step="0.01" class="form-control" id="editTargetPrice" placeholder="e.g., 2500.00">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editStopLoss" class="form-label">Stop Loss</label>
+                            <input type="number" step="0.01" class="form-control" id="editStopLoss" placeholder="e.g., 2400.00">
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editAlertEnabled">
+                            <label class="form-check-label" for="editAlertEnabled">
+                                Enable Price Alerts
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script th:inline="javascript">
+    let watchlistData = [];
+    let availableSymbols = [];
+
+    // Load watchlist on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadWatchlist();
+        loadAvailableSymbols();
+    });
+
+    // Toggle search section
+    document.getElementById('toggleSearchBtn').addEventListener('click', function() {
+        const searchSection = document.getElementById('searchSection');
+        searchSection.style.display = searchSection.style.display === 'none' ? 'block' : 'none';
+        if (searchSection.style.display === 'block') {
+            document.getElementById('searchInput').focus();
+        }
+    });
+
+    // Auto-search functionality - triggers when user types 2+ characters
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
+        // Hide results if query is less than 2 characters
+        if (query.length < 2) {
+            document.getElementById('searchResults').style.display = 'none';
+            return;
+        }
+        
+        // Debounce search to avoid too many calls while typing
+        searchTimeout = setTimeout(() => {
+            performSearch();
+        }, 300);
+    });
+
+    // Manual search button still works
+    document.getElementById('searchBtn').addEventListener('click', performSearch);
+
+    // Load available symbols
+    async function loadAvailableSymbols() {
+        try {
+            const response = await fetch('/api/watchlist/symbols');
+            const result = await response.json();
+            
+            if (result.success) {
+                availableSymbols = result.data;
+            }
+        } catch (error) {
+            console.error('Error loading available symbols:', error);
+        }
+    }
+
+    // Perform search
+    function performSearch() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        if (!query) {
+            showToast('Please enter a search term', 'warning');
+            return;
+        }
+
+        const filtered = availableSymbols.filter(symbol => 
+            symbol.symbol().toLowerCase().includes(query) ||
+            symbol.name().toLowerCase().includes(query)
+        );
+
+        displaySearchResults(filtered);
+    }
+
+    // Display search results
+    function displaySearchResults(results) {
+        const resultsDiv = document.getElementById('searchResults');
+        const tbody = document.getElementById('searchResultsBody');
+        
+        if (results.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No stocks found matching your search</td></tr>';
+            resultsDiv.style.display = 'block';
+            return;
+        }
+
+        tbody.innerHTML = results.map(symbol => `
+            <tr>
+                <td><strong>${symbol.symbol}</strong></td>
+                <td>${symbol.name}</td>
+                <td><code>${symbol.token}</code></td>
+                <td>${symbol.exchange}</td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="addFromSearch('${symbol.symbol}', '${symbol.token}', '${symbol.exchange}', '${symbol.name}')">
+                        Add
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        
+        resultsDiv.style.display = 'block';
+    }
+
+    // Add stock from search results
+    async function addFromSearch(symbol, token, exchange, name) {
+        // Fill the form and submit
+        document.getElementById('symbol').value = symbol;
+        document.getElementById('token').value = token;
+        document.getElementById('exchange').value = exchange;
+        document.getElementById('name').value = name;
+        
+        // Submit the form
+        document.getElementById('addStockForm').dispatchEvent(new Event('submit'));
+        
+        // Hide search results
+        document.getElementById('searchResults').style.display = 'none';
+        document.getElementById('searchInput').value = '';
+    }
+
+    // Load watchlist from API
+    async function loadWatchlist() {
+        try {
+            const response = await fetch('/api/watchlist');
+            const result = await response.json();
+            
+            if (result.success) {
+                watchlistData = result.data;
+                renderWatchlist();
+                updateWatchlistCount();
+            } else {
+                showToast('Failed to load watchlist: ' + result.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Error loading watchlist:', error);
+            showToast('Error loading watchlist', 'danger');
+        }
+    }
+
+    // Render watchlist table
+    function renderWatchlist() {
+        const tbody = document.getElementById('watchlistBody');
+        
+        if (watchlistData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No stocks in watchlist. Add some stocks above!</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = watchlistData.map(item => {
+            const changePercent = item.changePercent !== null ? item.changePercent : 0;
+            const changeClass = changePercent >= 0 ? 'price-up' : 'price-down';
+            const changeSign = changePercent >= 0 ? '+' : '';
+            
+            return `
+                <tr>
+                    <td><strong>${item.symbol}</strong></td>
+                    <td>${item.name || '-'}</td>
+                    <td>₹${item.lastPrice !== null ? item.lastPrice.toFixed(2) : 'N/A'}</td>
+                    <td class="${changeClass}">${changeSign}${changePercent.toFixed(2)}%</td>
+                    <td>₹${item.dayHigh !== null ? item.dayHigh.toFixed(2) : 'N/A'}</td>
+                    <td>₹${item.dayLow !== null ? item.dayLow.toFixed(2) : 'N/A'}</td>
+                    <td>${item.volume !== null ? formatNumber(item.volume) : 'N/A'}</td>
+                    <td>${item.targetPrice !== null ? '₹' + item.targetPrice.toFixed(2) : '-'}</td>
+                    <td>${item.stopLoss !== null ? '₹' + item.stopLoss.toFixed(2) : '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editItem('${item.symbol}')">Edit</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeItem('${item.symbol}')">Remove</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Update watchlist count badge
+    function updateWatchlistCount() {
+        document.getElementById('watchlistCount').textContent = watchlistData.length + ' stocks';
+    }
+
+    // Format large numbers
+    function formatNumber(num) {
+        if (num >= 10000000) return (num / 10000000).toFixed(2) + ' Cr';
+        if (num >= 100000) return (num / 100000).toFixed(2) + ' L';
+        if (num >= 1000) return (num / 1000).toFixed(2) + ' K';
+        return num.toString();
+    }
+
+    // Add stock to watchlist
+    document.getElementById('addStockForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const symbol = document.getElementById('symbol').value.toUpperCase();
+        const token = document.getElementById('token').value;
+        const exchange = document.getElementById('exchange').value;
+        const name = document.getElementById('name').value;
+        
+        const btn = this.querySelector('button[type="submit"]');
+        const spinner = btn.querySelector('.loading-spinner');
+        spinner.classList.add('active');
+        btn.disabled = true;
+        
+        try {
+            const params = new URLSearchParams({
+                symbol: symbol,
+                token: token,
+                exchange: exchange,
+                name: name
+            });
+            
+            const response = await fetch('/api/watchlist?' + params.toString(), {
+                method: 'POST'
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Stock added to watchlist successfully', 'success');
+                document.getElementById('addStockForm').reset();
+                loadWatchlist();
+            } else {
+                showToast('Failed to add stock: ' + result.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Error adding stock:', error);
+            showToast('Error adding stock to watchlist', 'danger');
+        } finally {
+            spinner.classList.remove('active');
+            btn.disabled = false;
+        }
+    });
+
+    // Remove stock from watchlist
+    async function removeItem(symbol) {
+        if (!confirm('Are you sure you want to remove ' + symbol + ' from your watchlist?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/watchlist/' + symbol, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(symbol + ' removed from watchlist', 'success');
+                loadWatchlist();
+            } else {
+                showToast('Failed to remove stock: ' + result.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Error removing stock:', error);
+            showToast('Error removing stock from watchlist', 'danger');
+        }
+    }
+
+    // Edit watchlist item
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    
+    function editItem(symbol) {
+        const item = watchlistData.find(w => w.symbol === symbol);
+        if (!item) return;
+        
+        document.getElementById('editSymbol').value = symbol;
+        document.getElementById('editNotes').value = item.notes || '';
+        document.getElementById('editTargetPrice').value = item.targetPrice || '';
+        document.getElementById('editStopLoss').value = item.stopLoss || '';
+        document.getElementById('editAlertEnabled').checked = item.alertEnabled || false;
+        
+        editModal.show();
+    }
+
+    // Save edit
+    document.getElementById('saveEditBtn').addEventListener('click', async function() {
+        const symbol = document.getElementById('editSymbol').value;
+        const notes = document.getElementById('editNotes').value;
+        const targetPrice = document.getElementById('editTargetPrice').value || null;
+        const stopLoss = document.getElementById('editStopLoss').value || null;
+        const alertEnabled = document.getElementById('editAlertEnabled').checked;
+        
+        const params = new URLSearchParams();
+        params.append('notes', notes);
+        if (targetPrice) params.append('targetPrice', targetPrice);
+        if (stopLoss) params.append('stopLoss', stopLoss);
+        params.append('alertEnabled', alertEnabled);
+        
+        try {
+            const response = await fetch('/api/watchlist/' + symbol + '?' + params.toString(), {
+                method: 'PUT'
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Watchlist item updated successfully', 'success');
+                editModal.hide();
+                loadWatchlist();
+            } else {
+                showToast('Failed to update: ' + result.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Error updating watchlist item:', error);
+            showToast('Error updating watchlist item', 'danger');
+        }
+    });
+
+    // Refresh prices
+    document.getElementById('refreshPricesBtn').addEventListener('click', async function() {
+        const btn = this;
+        const spinner = btn.querySelector('.loading-spinner');
+        spinner.classList.add('active');
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch('/api/watchlist/refresh', {
+                method: 'POST'
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Prices refreshed successfully', 'success');
+                loadWatchlist();
+            } else {
+                showToast('Failed to refresh prices: ' + result.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Error refreshing prices:', error);
+            showToast('Error refreshing prices', 'danger');
+        } finally {
+            spinner.classList.remove('active');
+            btn.disabled = false;
+        }
+    });
+
+    // Auto-refresh prices every 5 minutes
+    setInterval(loadWatchlist, 300000);
+</script>
+</body>
+</html>

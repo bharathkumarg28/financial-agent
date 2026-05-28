@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Data - Financial Agent India</title>
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css">
+    <style>
+        :root { --bs-body-bg: #1a1d21; --bs-body-color: #e9ecef; }
+        body { background: linear-gradient(135deg, #1a1d21 0%, #2d3436 100%); min-height: 100vh; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .card-header { background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .table-dark { --bs-table-bg: transparent; }
+        .candle-green { color: #00d26a; }
+        .candle-red { color: #ff4757; }
+        .nav-tabs .nav-link { color: #adb5bd; border: none; }
+        .nav-tabs .nav-link.active { color: #fff; background: rgba(255,255,255,0.1); border-radius: 8px 8px 0 0; }
+    </style>
+</head>
+<body class="d-flex flex-column">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container py-4 flex-grow-1">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 fw-bold">Market Data</h1>
+            <p class="text-muted">Fetch OHLCV candles and option chain data</p>
+        </div>
+    </div>
+
+    <!-- Fetch Form -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Fetch Data</h5>
+                </div>
+                <div class="card-body">
+                    <form id="fetchForm">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Stock Symbol</label>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control bg-dark text-light border-secondary"
+                                           id="symbol" value="RELIANCE" autocomplete="off" required>
+                                    <div id="symbolSuggestions"
+                                         class="position-absolute w-100 bg-dark border border-secondary rounded mt-1"
+                                         style="max-height: 200px; overflow-y: auto; z-index: 1000; display: none;"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Symbol Token</label>
+                                <input type="text" class="form-control bg-dark text-light border-secondary"
+                                       id="token" value="2885" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Days</label>
+                                <input type="number" class="form-control bg-dark text-light border-secondary"
+                                       id="days" value="30" min="1" max="365">
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary me-2" id="fetchCandlesBtn">
+                                    Fetch Candles
+                                </button>
+                                <button type="button" class="btn btn-info" id="fetchOptionsBtn">
+                                    Fetch Option Chain
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Select</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-secondary quick-stock" data-symbol="RELIANCE"
+                                data-token="2885">RELIANCE
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary quick-stock" data-symbol="TCS"
+                                data-token="11536">TCS
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary quick-stock" data-symbol="INFY"
+                                data-token="1594">INFY
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary quick-stock" data-symbol="HDFCBANK"
+                                data-token="1333">HDFCBANK
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary quick-stock" data-symbol="SBIN"
+                                data-token="3045">SBIN
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="row mb-4 d-none">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <h5>Fetching data...</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Quote Section -->
+    <div id="liveQuoteSection" class="row mb-4 d-none">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <span id="liveSymbol">RELIANCE</span> - Live Quote
+                        <span id="liveStatus" class="badge bg-secondary ms-2">Live</span>
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-success" id="toggleLiveBtn">Start Live</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="refreshLiveBtn">Refresh</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Main Price Display -->
+                        <div class="col-md-4 text-center">
+                            <h2 id="liveLtp" class="mb-1">0.00</h2>
+                            <div id="liveChange" class="h5 mb-0">0.00 (0.00%)</div>
+                            <div class="text-muted small" id="liveTime">--:--:--</div>
+                        </div>
+
+                        <!-- OHLC Data -->
+                        <div class="col-md-4">
+                            <h6 class="text-muted mb-3">Today's OHLC</h6>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Open</small>
+                                    <div id="liveOpen" class="fw-bold">0.00</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">High</small>
+                                    <div id="liveHigh" class="fw-bold text-success">0.00</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Low</small>
+                                    <div id="liveLow" class="fw-bold text-danger">0.00</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Close</small>
+                                    <div id="liveClose" class="fw-bold">0.00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bid/Ask Data -->
+                        <div class="col-md-4">
+                            <h6 class="text-muted mb-3">Bid / Ask</h6>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Bid</small>
+                                    <div id="liveBid" class="fw-bold">0.00</div>
+                                    <small class="text-muted" id="liveBidQty">0</small>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Ask</small>
+                                    <div id="liveAsk" class="fw-bold">0.00</div>
+                                    <small class="text-muted" id="liveAskQty">0</small>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <small class="text-muted">Volume</small>
+                                    <div id="liveVolume" class="fw-bold">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Tabs -->
+    <div id="resultsSection">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#liveQuoteTab">
+                    Live Quote <span class="badge bg-success ms-1">LIVE</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#candlesTab">
+                    Candle Data <span id="candleCount" class="badge bg-secondary ms-1">0</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#optionsTab">
+                    Option Chain <span id="strikeCount" class="badge bg-secondary ms-1">0</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Live Quote Tab -->
+            <div class="tab-pane fade show active" id="liveQuoteTab">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <span id="liveTabSymbol">RELIANCE</span> - Real-Time Market Data
+                            <span id="liveConnectionStatus" class="badge bg-secondary ms-2">Disconnected</span>
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success" id="startLiveBtn">Start Live Feed</button>
+                            <button class="btn btn-sm btn-danger" id="stopLiveBtn" disabled>Stop Live Feed</button>
+                            <button class="btn btn-sm btn-outline-secondary" id="refreshQuoteBtn">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Price Display -->
+                            <div class="col-lg-4">
+                                <div class="text-center">
+                                    <h1 id="currentPrice" class="display-4 mb-2">0.00</h1>
+                                    <div id="priceChange" class="h5 mb-2">
+                                        <span id="changeAmount">0.00</span>
+                                        (<span id="changePercent">0.00%</span>)
+                                    </div>
+                                    <div class="text-muted" id="lastUpdate">Last updated: --:--:--</div>
+                                </div>
+                            </div>
+
+                            <!-- Market Stats -->
+                            <div class="col-lg-8">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Today's Range</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Low: <strong id="dayLow" class="text-danger">0.00</strong></span>
+                                            <span>High: <strong id="dayHigh" class="text-success">0.00</strong></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted">Volume</h6>
+                                        <div class="fw-bold" id="currentVolume">0</div>
+                                    </div>
+                                    <div class="col-md-6 mt-3">
+                                        <h6 class="text-muted">Bid / Ask</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Bid: <strong id="bidPrice">0.00</strong> (<span id="bidQty">0</span>)</span>
+                                            <span>Ask: <strong id="askPrice">0.00</strong> (<span id="askQty">0</span>)</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mt-3">
+                                        <h6 class="text-muted">Open / Close</h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Open: <strong id="dayOpen">0.00</strong></span>
+                                            <span>Close: <strong id="dayClose">0.00</strong></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Candles Tab -->
+            <div class="tab-pane fade" id="candlesTab">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><span id="candleSymbol">RELIANCE</span> - Daily OHLCV</h5>
+                        <button class="btn btn-sm btn-outline-secondary" id="exportCandlesBtn">Export CSV</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-dark table-hover table-sm mb-0">
+                                <thead class="sticky-top bg-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th class="text-end">Open</th>
+                                    <th class="text-end">High</th>
+                                    <th class="text-end">Low</th>
+                                    <th class="text-end">Close</th>
+                                    <th class="text-end">Volume</th>
+                                    <th class="text-end">Change</th>
+                                </tr>
+                                </thead>
+                                <tbody id="candlesTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Options Tab -->
+            <div class="tab-pane fade" id="optionsTab">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><span id="optionSymbol">RELIANCE</span> - Option Chain</h5>
+                        <button class="btn btn-sm btn-outline-secondary" id="exportOptionsBtn">Export CSV</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-dark table-hover table-sm mb-0">
+                                <thead class="sticky-top bg-dark">
+                                <tr>
+                                    <th colspan="4" class="text-center bg-success bg-opacity-25">CALLS</th>
+                                    <th class="text-center">Strike</th>
+                                    <th colspan="4" class="text-center bg-danger bg-opacity-25">PUTS</th>
+                                </tr>
+                                <tr>
+                                    <th class="text-end">OI</th>
+                                    <th class="text-end">IV</th>
+                                    <th class="text-end">Delta</th>
+                                    <th class="text-end">LTP</th>
+                                    <th class="text-center">Price</th>
+                                    <th class="text-end">LTP</th>
+                                    <th class="text-end">Delta</th>
+                                    <th class="text-end">IV</th>
+                                    <th class="text-end">OI</th>
+                                </tr>
+                                </thead>
+                                <tbody id="optionsTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="row mb-4 d-none">
+        <div class="col-12">
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">Error</h5>
+                <p id="errorMessage" class="mb-0"></p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    let candlesData = [];
+    let optionsData = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const symbolInput = document.getElementById('symbol');
+        const tokenInput = document.getElementById('token');
+        const daysInput = document.getElementById('days');
+
+        // Quick stock selection
+        document.querySelectorAll('.quick-stock').forEach(btn => {
+            btn.addEventListener('click', function() {
+                symbolInput.value = this.dataset.symbol;
+                tokenInput.value = this.dataset.token;
+            });
+        });
+
+        // Symbol search functionality
+        let allSymbols = [];
+        let selectedSymbolIndex = -1;
+
+        // Load symbols on page load
+        loadSymbols();
+
+        async function loadSymbols() {
+            try {
+                const response = await fetch('/api/market/symbols');
+                const data = await response.json();
+                if (data.success && data.data) {
+                    allSymbols = data.data;
+                    console.log('Loaded', allSymbols.length, 'symbols');
+                }
+            } catch (error) {
+                console.error('Failed to load symbols:', error);
+            }
+        }
+
+        // Symbol input events
+        symbolInput.addEventListener('input', function() {
+            const query = this.value.trim().toUpperCase();
+            if (query.length < 2) {
+                hideSuggestions();
+                return;
+            }
+            showSuggestions(query);
+        });
+
+        symbolInput.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2) {
+                showSuggestions(this.value.trim().toUpperCase());
+            }
+        });
+
+        symbolInput.addEventListener('keydown', function(e) {
+            const suggestions = document.getElementById('symbolSuggestions');
+            const items = suggestions.querySelectorAll('.suggestion-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedSymbolIndex = Math.min(selectedSymbolIndex + 1, items.length - 1);
+                updateSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedSymbolIndex = Math.max(selectedSymbolIndex - 1, -1);
+                updateSelection(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedSymbolIndex >= 0 && items[selectedSymbolIndex]) {
+                    items[selectedSymbolIndex].click();
+                } else {
+                    hideSuggestions();
+                }
+            } else if (e.key === 'Escape') {
+                hideSuggestions();
+            }
+        });
+
+        function showSuggestions(query) {
+            const suggestions = document.getElementById('symbolSuggestions');
+            const matches = allSymbols.filter(s =>
+                s.symbol.toUpperCase().includes(query) ||
+                s.name.toUpperCase().includes(query)
+            ).slice(0, 10);
+
+            if (matches.length === 0) {
+                hideSuggestions();
+                return;
+            }
+
+            let html = '';
+            matches.forEach((symbol, index) => {
+                html += `
+                    <div class="suggestion-item px-3 py-2 border-bottom border-secondary cursor-pointer hover-bg-secondary"
+                         data-symbol="${symbol.symbol}" data-token="${symbol.token}" data-name="${symbol.name}"
+                         style="cursor: pointer;">
+                        <div class="fw-bold">${symbol.symbol}</div>
+                        <div class="small text-muted">${symbol.name}</div>
+                    </div>
+                `;
+            });
+
+            suggestions.innerHTML = html;
+            suggestions.style.display = 'block';
+            selectedSymbolIndex = -1;
+
+            // Add click handlers
+            suggestions.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    symbolInput.value = this.dataset.symbol;
+                    tokenInput.value = this.dataset.token;
+                    hideSuggestions();
+                    showToast(`Selected ${this.dataset.symbol} - ${this.dataset.name}`, 'success');
+                });
+            });
+        }
+
+        function hideSuggestions() {
+            document.getElementById('symbolSuggestions').style.display = 'none';
+            selectedSymbolIndex = -1;
+        }
+
+        function updateSelection(items) {
+            items.forEach((item, index) => {
+                if (index === selectedSymbolIndex) {
+                    item.classList.add('bg-secondary');
+                } else {
+                    item.classList.remove('bg-secondary');
+                }
+            });
+        }
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.position-relative')) {
+                hideSuggestions();
+            }
+        });
+
+        // URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('symbol')) symbolInput.value = urlParams.get('symbol');
+        if (urlParams.has('token')) tokenInput.value = urlParams.get('token');
+
+        // Fetch candles
+        document.getElementById('fetchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await fetchCandles();
+        });
+
+        // Fetch options
+        document.getElementById('fetchOptionsBtn').addEventListener('click', fetchOptions);
+
+        // Export buttons
+        document.getElementById('exportCandlesBtn').addEventListener('click', exportCandles);
+        document.getElementById('exportOptionsBtn').addEventListener('click', exportOptions);
+
+        // Live quotes functionality
+        let liveQuoteInterval = null;
+        let isLiveFeedActive = false;
+        let currentLiveSymbol = null;
+        let currentLiveToken = null;
+
+        // Live quote button handlers
+        document.getElementById('startLiveBtn').addEventListener('click', startLiveFeed);
+        document.getElementById('stopLiveBtn').addEventListener('click', stopLiveFeed);
+        document.getElementById('refreshQuoteBtn').addEventListener('click', fetchLiveQuote);
+        document.getElementById('toggleLiveBtn').addEventListener('click', toggleLiveSection);
+        document.getElementById('refreshLiveBtn').addEventListener('click', fetchLiveQuote);
+
+        function startLiveFeed() {
+            const symbol = symbolInput.value.trim().toUpperCase();
+            const token = tokenInput.value.trim();
+
+            if (!symbol || !token) {
+                showToast('Please enter symbol and token', 'warning');
+                return;
+            }
+
+            currentLiveSymbol = symbol;
+            currentLiveToken = token;
+
+            // Subscribe to live quotes
+            subscribeToLiveQuotes(symbol, token);
+
+            // Start polling for live data (fallback)
+            liveQuoteInterval = setInterval(() => {
+                fetchLiveQuote();
+            }, 2000); // Update every 2 seconds
+
+            isLiveFeedActive = true;
+            updateLiveFeedButtons(true);
+            updateLiveConnectionStatus('Connected', 'success');
+            showToast(`Live feed started for ${symbol}`, 'success');
+
+            // Show live quote section and switch to live tab
+            document.getElementById('liveQuoteSection').classList.remove('d-none');
+            document.getElementById('resultsSection').classList.remove('d-none');
+            document.querySelector('[data-bs-target="#liveQuoteTab"]').click();
+        }
+
+        function stopLiveFeed() {
+            if (liveQuoteInterval) {
+                clearInterval(liveQuoteInterval);
+                liveQuoteInterval = null;
+            }
+
+            isLiveFeedActive = false;
+            updateLiveFeedButtons(false);
+            updateLiveConnectionStatus('Disconnected', 'secondary');
+            showToast('Live feed stopped', 'info');
+        }
+
+        async function subscribeToLiveQuotes(symbol, token) {
+            try {
+                const response = await fetch(`/api/market/live/subscribe?symbols=${symbol}&tokens=${token}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    console.warn('Failed to subscribe to live quotes:', data.error);
+                }
+            } catch (error) {
+                console.error('Error subscribing to live quotes:', error);
+            }
+        }
+
+        async function fetchLiveQuote() {
+            if (!currentLiveSymbol || !currentLiveToken) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/market/live?symbol=${currentLiveSymbol}&token=${currentLiveToken}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    updateLiveQuoteDisplay(data.data);
+                } else {
+                    console.warn('Failed to fetch live quote:', data.error);
+                    updateLiveConnectionStatus('Error', 'danger');
+                }
+            } catch (error) {
+                console.error('Error fetching live quote:', error);
+                updateLiveConnectionStatus('Error', 'danger');
+            }
+        }
+
+        function updateLiveQuoteDisplay(quote) {
+            // Update main display
+            document.getElementById('currentPrice').textContent = quote.ltp || '0.00';
+            document.getElementById('changeAmount').textContent = quote.change ? quote.change.toFixed(2) : '0.00';
+            document.getElementById('changePercent').textContent = quote.changePercent ? quote.changePercent.toFixed(2) + '%' : '0.00%';
+            document.getElementById('lastUpdate').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+
+            // Update price change color
+            const priceChangeElement = document.getElementById('priceChange');
+            if (quote.change && quote.change > 0) {
+                priceChangeElement.className = 'h5 mb-2 text-success';
+            } else if (quote.change && quote.change < 0) {
+                priceChangeElement.className = 'h5 mb-2 text-danger';
+            } else {
+                priceChangeElement.className = 'h5 mb-2 text-muted';
+            }
+
+            // Update OHLC
+            document.getElementById('dayOpen').textContent = quote.open || '0.00';
+            document.getElementById('dayHigh').textContent = quote.high || '0.00';
+            document.getElementById('dayLow').textContent = quote.low || '0.00';
+            document.getElementById('dayClose').textContent = quote.close || '0.00';
+
+            // Update bid/ask
+            document.getElementById('bidPrice').textContent = quote.bidPrice || '0.00';
+            document.getElementById('bidQty').textContent = quote.bidQuantity || '0';
+            document.getElementById('askPrice').textContent = quote.askPrice || '0.00';
+            document.getElementById('askQty').textContent = quote.askQuantity || '0';
+
+            // Update volume
+            document.getElementById('currentVolume').textContent = quote.volume ? quote.volume.toLocaleString() : '0';
+
+            // Update symbol displays
+            document.getElementById('liveTabSymbol').textContent = quote.symbol || currentLiveSymbol;
+            document.getElementById('liveSymbol').textContent = quote.symbol || currentLiveSymbol;
+        }
+
+        function updateLiveFeedButtons(isActive) {
+            const startBtn = document.getElementById('startLiveBtn');
+            const stopBtn = document.getElementById('stopLiveBtn');
+
+            if (isActive) {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+
+        function updateLiveConnectionStatus(status, color) {
+            const statusElement = document.getElementById('liveConnectionStatus');
+            statusElement.textContent = status;
+            statusElement.className = `badge bg-${color} ms-2`;
+        }
+
+        function toggleLiveSection() {
+            const section = document.getElementById('liveQuoteSection');
+            const btn = document.getElementById('toggleLiveBtn');
+
+            if (section.classList.contains('d-none')) {
+                section.classList.remove('d-none');
+                btn.textContent = 'Hide Live Quote';
+                fetchLiveQuote(); // Load current quote
+            } else {
+                section.classList.add('d-none');
+                btn.textContent = 'Show Live Quote';
+            }
+        }
+
+        async function fetchCandles() {
+            const symbol = symbolInput.value.trim().toUpperCase();
+            const token = tokenInput.value.trim();
+            const days = daysInput.value;
+
+            showLoading();
+
+            try {
+                const response = await fetch(`/api/market/candles?symbol=${symbol}&token=${token}&days=${days}`);
+                const data = await response.json();
+
+                hideLoading();
+
+                if (data.success && data.data) {
+                    candlesData = data.data.candles;
+                    displayCandles(data.data);
+                } else {
+                    showError(data.error || 'Failed to fetch candles');
+                }
+            } catch (error) {
+                hideLoading();
+                showError(error.message);
+            }
+        }
+
+        async function fetchOptions() {
+            const symbol = symbolInput.value.trim().toUpperCase();
+
+            showLoading();
+
+            try {
+                const response = await fetch(`/api/market/options?symbol=${symbol}`);
+                const data = await response.json();
+
+                hideLoading();
+
+                if (data.success && data.data) {
+                    optionsData = data.data.strikes;
+                    displayOptions(data.data);
+                    // Switch to options tab
+                    document.querySelector('[data-bs-target="#optionsTab"]').click();
+                } else {
+                    showError(data.error || 'Failed to fetch option chain');
+                }
+            } catch (error) {
+                hideLoading();
+                showError(error.message);
+            }
+        }
+
+        function displayCandles(data) {
+            document.getElementById('candleSymbol').textContent = data.symbol;
+            document.getElementById('candleCount').textContent = data.candleCount;
+
+            const tbody = document.getElementById('candlesTableBody');
+            tbody.innerHTML = '';
+
+            data.candles.forEach((candle, index) => {
+                const prevClose = index > 0 ? data.candles[index - 1].close : candle.open;
+                const change = ((candle.close - prevClose) / prevClose * 100).toFixed(2);
+                const isGreen = candle.close >= candle.open;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${candle.dateString}</td>
+                        <td class="text-end">${formatNumber(candle.open)}</td>
+                        <td class="text-end">${formatNumber(candle.high)}</td>
+                        <td class="text-end">${formatNumber(candle.low)}</td>
+                        <td class="text-end ${isGreen ? 'candle-green' : 'candle-red'}">${formatNumber(candle.close)}</td>
+                        <td class="text-end">${Number(candle.volume).toLocaleString('en-IN')}</td>
+                        <td class="text-end ${change >= 0 ? 'candle-green' : 'candle-red'}">${change}%</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('resultsSection').classList.remove('d-none');
+            document.getElementById('errorState').classList.add('d-none');
+        }
+
+        function displayOptions(data) {
+            document.getElementById('optionSymbol').textContent = data.symbol;
+            document.getElementById('strikeCount').textContent = data.strikeCount;
+
+            const tbody = document.getElementById('optionsTableBody');
+            tbody.innerHTML = '';
+
+            data.strikes.forEach(strike => {
+                const call = strike.callLeg || {};
+                const put = strike.putLeg || {};
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-end">${formatOI(call.oi)}</td>
+                        <td class="text-end">${formatDecimal(call.iv)}</td>
+                        <td class="text-end">${formatDecimal(call.deltaVal, 4)}</td>
+                        <td class="text-end">${formatNumber(call.lastPrice)}</td>
+                        <td class="text-center fw-bold">${formatNumber(strike.strike)}</td>
+                        <td class="text-end">${formatNumber(put.lastPrice)}</td>
+                        <td class="text-end">${formatDecimal(put.deltaVal, 4)}</td>
+                        <td class="text-end">${formatDecimal(put.iv)}</td>
+                        <td class="text-end">${formatOI(put.oi)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('resultsSection').classList.remove('d-none');
+        }
+
+        function exportCandles() {
+            if (!candlesData.length) return;
+
+            let csv = 'Date,Open,High,Low,Close,Volume\n';
+            candlesData.forEach(c => {
+                csv += `${c.dateString},${c.open},${c.high},${c.low},${c.close},${c.volume}\n`;
+            });
+
+            downloadCSV(csv, `${symbolInput.value}_candles.csv`);
+        }
+
+        function exportOptions() {
+            if (!optionsData.length) return;
+
+            let csv = 'Strike,CE_OI,CE_IV,CE_Delta,CE_LTP,PE_LTP,PE_Delta,PE_IV,PE_OI\n';
+            optionsData.forEach(s => {
+                const c = s.callLeg || {};
+                const p = s.putLeg || {};
+                csv += `${s.strike},${c.oi||0},${c.iv||0},${c.deltaVal||0},${c.lastPrice||0},${p.lastPrice||0},${p.deltaVal||0},${p.iv||0},${p.oi||0}\n`;
+            });
+
+            downloadCSV(csv, `${symbolInput.value}_options.csv`);
+        }
+
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingState').classList.remove('d-none');
+            document.getElementById('errorState').classList.add('d-none');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').classList.add('d-none');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorState').classList.remove('d-none');
+        }
+
+        function formatNumber(val) {
+            if (val == null) return '-';
+            return Number(val).toFixed(2);
+        }
+
+        function formatDecimal(val, decimals = 2) {
+            if (val == null) return '-';
+            return Number(val).toFixed(decimals);
+        }
+
+        function formatOI(val) {
+            if (val == null) return '-';
+            return Number(val).toLocaleString('en-IN');
+        }
+    });
+</script>
+</body>
+</html>

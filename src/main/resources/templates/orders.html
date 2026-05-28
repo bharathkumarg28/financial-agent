@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders - Financial Agent India</title>
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css">
+    <style>
+        :root { --bs-body-bg: #1a1d21; --bs-body-color: #e9ecef; }
+        body { background: linear-gradient(135deg, #1a1d21 0%, #2d3436 100%); min-height: 100vh; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .card-header { background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .order-buy { border-left: 4px solid #00d26a; }
+        .order-sell { border-left: 4px solid #ff4757; }
+        .order-stoploss { border-left: 4px solid #ffa502; }
+    </style>
+</head>
+<body class="d-flex flex-column">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container py-4 flex-grow-1">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 fw-bold">Order Placement</h1>
+            <p class="text-muted">Place buy, sell, and stop-loss orders</p>
+        </div>
+    </div>
+
+    <!-- Warning Banner -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div th:if="${dryRunMode}" class="alert alert-warning d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" class="me-2">
+                    <path d="M12 9v4"/>
+                    <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"/>
+                    <path d="M12 17h.01"/>
+                </svg>
+                <div>
+                    <strong>DRY RUN MODE</strong> - No real orders will be placed. Orders are simulated only.
+                </div>
+            </div>
+            <div th:unless="${dryRunMode}" class="alert alert-danger d-flex align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" class="me-2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="m15 9-6 6"/>
+                    <path d="m9 9 6 6"/>
+                </svg>
+                <div>
+                    <strong>LIVE MODE</strong> - Orders WILL be placed with real money! Be careful.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Buy Order -->
+        <div class="col-lg-4">
+            <div class="card order-buy h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 text-success">Buy Order</h5>
+                </div>
+                <div class="card-body">
+                    <form id="buyForm">
+                        <div class="mb-3">
+                            <label class="form-label">Symbol</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                   name="symbol" value="RELIANCE-EQ" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Token</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                   name="token" value="2885" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary"
+                                   name="quantity" value="1" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Order Type</label>
+                            <select class="form-select bg-dark text-light border-secondary" name="orderType">
+                                <option value="MARKET">Market</option>
+                                <option value="LIMIT">Limit</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 limit-price-group d-none">
+                            <label class="form-label">Limit Price</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary"
+                                   name="price" step="0.05" placeholder="0.00">
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Place Buy Order</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sell Order -->
+        <div class="col-lg-4">
+            <div class="card order-sell h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 text-danger">Sell Order</h5>
+                </div>
+                <div class="card-body">
+                    <form id="sellForm">
+                        <div class="mb-3">
+                            <label class="form-label">Symbol</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                   name="symbol" value="RELIANCE-EQ" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Token</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                   name="token" value="2885" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary"
+                                   name="quantity" value="1" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Order Type</label>
+                            <select class="form-select bg-dark text-light border-secondary" name="orderType">
+                                <option value="MARKET">Market</option>
+                                <option value="LIMIT">Limit</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 limit-price-group d-none">
+                            <label class="form-label">Limit Price</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary"
+                                   name="price" step="0.05" placeholder="0.00">
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100">Place Sell Order</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stop-Loss Order -->
+        <div class="col-lg-4">
+            <div class="card order-stoploss h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 text-warning">Stop-Loss Order</h5>
+                </div>
+                <div class="card-body">
+                    <form id="stoplossForm">
+                        <div class="mb-3">
+                            <label class="form-label">Symbol</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                   name="symbol" value="RELIANCE-EQ" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Token</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                   name="token" value="2885" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary"
+                                   name="quantity" value="1" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trigger Price</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary"
+                                   name="triggerPrice" step="0.05" placeholder="1250.00" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Limit Price</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary"
+                                   name="limitPrice" step="0.05" placeholder="1245.00" required>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">Place Stop-Loss</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order History -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Orders</h5>
+                    <button class="btn btn-sm btn-outline-secondary" id="clearHistoryBtn">Clear</button>
+                </div>
+                <div class="card-body">
+                    <div id="orderHistory">
+                        <p class="text-muted text-center mb-0">No orders placed yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Status Check -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Check Order Status</h5>
+                </div>
+                <div class="card-body">
+                    <form id="statusForm" class="d-flex gap-2">
+                        <input type="text" class="form-control bg-dark text-light border-secondary"
+                               id="statusOrderId" placeholder="Order ID" required>
+                        <button type="submit" class="btn btn-outline-primary">Check</button>
+                    </form>
+                    <div id="statusResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Cancel Order</h5>
+                </div>
+                <div class="card-body">
+                    <form id="cancelForm" class="d-flex gap-2">
+                        <input type="text" class="form-control bg-dark text-light border-secondary"
+                               id="cancelOrderId" placeholder="Order ID" required>
+                        <select class="form-select bg-dark text-light border-secondary" id="cancelVariety"
+                                style="width: auto;">
+                            <option value="NORMAL">Normal</option>
+                            <option value="STOPLOSS">Stop-Loss</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline-danger">Cancel</button>
+                    </form>
+                    <div id="cancelResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    const orderHistory = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle limit price visibility
+        document.querySelectorAll('select[name="orderType"]').forEach(select => {
+            select.addEventListener('change', function() {
+                const priceGroup = this.closest('form').querySelector('.limit-price-group');
+                if (this.value === 'LIMIT') {
+                    priceGroup.classList.remove('d-none');
+                    priceGroup.querySelector('input').required = true;
+                } else {
+                    priceGroup.classList.add('d-none');
+                    priceGroup.querySelector('input').required = false;
+                }
+            });
+        });
+
+        // Buy form
+        document.getElementById('buyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const orderType = formData.get('orderType');
+
+            let url = orderType === 'MARKET'
+                ? `/api/orders/buy/market?symbol=${formData.get('symbol')}&token=${formData.get('token')}&quantity=${formData.get('quantity')}`
+                : `/api/orders/buy/limit?symbol=${formData.get('symbol')}&token=${formData.get('token')}&quantity=${formData.get('quantity')}&price=${formData.get('price')}`;
+
+            await placeOrder(url, 'BUY', formData);
+        });
+
+        // Sell form
+        document.getElementById('sellForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const orderType = formData.get('orderType');
+
+            let url = orderType === 'MARKET'
+                ? `/api/orders/sell/market?symbol=${formData.get('symbol')}&token=${formData.get('token')}&quantity=${formData.get('quantity')}`
+                : `/api/orders/sell/limit?symbol=${formData.get('symbol')}&token=${formData.get('token')}&quantity=${formData.get('quantity')}&price=${formData.get('price')}`;
+
+            await placeOrder(url, 'SELL', formData);
+        });
+
+        // Stop-loss form
+        document.getElementById('stoplossForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            const url = `/api/orders/stoploss?symbol=${formData.get('symbol')}&token=${formData.get('token')}&quantity=${formData.get('quantity')}&limitPrice=${formData.get('limitPrice')}&triggerPrice=${formData.get('triggerPrice')}`;
+
+            await placeOrder(url, 'STOP-LOSS', formData);
+        });
+
+        // Status check
+        document.getElementById('statusForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const orderId = document.getElementById('statusOrderId').value;
+
+            try {
+                const response = await fetch(`/api/orders/${orderId}/status`);
+                const data = await response.json();
+
+                document.getElementById('statusResult').innerHTML = data.success
+                    ? `<div class="alert alert-info">${data.message}</div>`
+                    : `<div class="alert alert-warning">${data.error || data.message}</div>`;
+            } catch (error) {
+                document.getElementById('statusResult').innerHTML =
+                    `<div class="alert alert-danger">${error.message}</div>`;
+            }
+        });
+
+        // Cancel order
+        document.getElementById('cancelForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const orderId = document.getElementById('cancelOrderId').value;
+            const variety = document.getElementById('cancelVariety').value;
+
+            try {
+                const response = await fetch(`/api/orders/${orderId}?variety=${variety}`, { method: 'DELETE' });
+                const data = await response.json();
+
+                document.getElementById('cancelResult').innerHTML = data.success
+                    ? `<div class="alert alert-success">${data.data.message}</div>`
+                    : `<div class="alert alert-danger">${data.error}</div>`;
+            } catch (error) {
+                document.getElementById('cancelResult').innerHTML =
+                    `<div class="alert alert-danger">${error.message}</div>`;
+            }
+        });
+
+        // Clear history
+        document.getElementById('clearHistoryBtn').addEventListener('click', function() {
+            orderHistory.length = 0;
+            updateOrderHistory();
+        });
+
+        async function placeOrder(url, action, formData) {
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    const result = data.data;
+                    orderHistory.unshift({
+                        time: new Date().toLocaleTimeString(),
+                        action: action,
+                        symbol: result.symbol,
+                        quantity: result.quantity,
+                        price: result.price,
+                        orderId: result.orderId,
+                        dryRun: result.dryRun,
+                        message: result.message
+                    });
+                    updateOrderHistory();
+                    showToast(result.message, result.dryRun ? 'warning' : 'success');
+                } else {
+                    showToast(data.error || 'Order failed', 'danger');
+                }
+            } catch (error) {
+                showToast(error.message, 'danger');
+            }
+        }
+
+        function updateOrderHistory() {
+            const container = document.getElementById('orderHistory');
+
+            if (orderHistory.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center mb-0">No orders placed yet</p>';
+                return;
+            }
+
+            container.innerHTML = orderHistory.map(order => `
+                <div class="d-flex justify-content-between align-items-center border-bottom border-secondary py-2">
+                    <div>
+                        <span class="badge ${order.action === 'BUY' ? 'bg-success' : order.action === 'SELL' ? 'bg-danger' : 'bg-warning'}">${order.action}</span>
+                        <strong class="ms-2">${order.symbol}</strong>
+                        <span class="text-muted">x${order.quantity}</span>
+                        ${order.price ? `<span class="text-muted">@ ₹${order.price}</span>` : ''}
+                    </div>
+                    <div class="text-end">
+                        ${order.dryRun ? '<span class="badge bg-secondary">DRY RUN</span>' : ''}
+                        ${order.orderId ? `<code class="ms-2">${order.orderId}</code>` : ''}
+                        <small class="text-muted d-block">${order.time}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+    });
+</script>
+</body>
+</html>

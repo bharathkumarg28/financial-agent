@@ -1,0 +1,81 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: financial-agent-india
+  main:
+    allow-circular-references: true
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:h2:file:./data/financial_agent
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  
+  # Cache Configuration
+  cache:
+    type: simple
+
+  # Email Configuration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: your-email@gmail.com
+    password: your-app-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+# AngelOne SmartAPI Configuration
+angelone:
+  base-url: https://apiconnect.angelbroking.com
+  totp-login-enabled: true
+
+# Anthropic Claude Configuration
+anthropic:
+  api-key: add-your-api-key-here
+  model: claude-sonnet-4-20250514
+  max-tokens: 1500
+
+# Order Configuration
+order:
+  dry-run: true
+
+# Twilio SMS Configuration
+twilio:
+  account-sid: your-twilio-account-sid
+  auth-token: your-twilio-auth-token
+  phone-number: your-twilio-phone-number
+  enabled: false
+
+# Telegram Bot Configuration
+telegram:
+  bot-token: 8684831505:AAGB2avO60v5LfcFr249IbvXj2Of5uRrn8o
+  enabled: true
+
+logging:
+  level:
+    com.financialagent: DEBUG
+    org.springframework.web: INFO

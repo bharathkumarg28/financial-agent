@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Agent India - Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <style>
+        :root {
+            --bs-body-bg: #1a1d21;
+            --bs-body-color: #e9ecef;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1d21 0%, #2d3436 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        .card-header {
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+        .quick-action {
+            transition: all 0.2s;
+        }
+        .quick-action:hover {
+            transform: scale(1.02);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container py-4 flex-grow-1">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold text-gradient">Dashboard</h1>
+            <p class="text-muted">AI-powered financial analysis for Indian equities</p>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon bg-primary bg-opacity-25 text-primary me-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Connection</h6>
+                        <h4 class="mb-0" th:text="${connected} ? 'Active' : 'Inactive'"
+                            th:class="${connected} ? 'text-success' : 'text-secondary'"></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon bg-warning bg-opacity-25 text-warning me-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2">
+                            <path d="M12 9v4"/>
+                            <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"/>
+                            <path d="M12 17h.01"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Order Mode</h6>
+                        <h4 class="mb-0" th:text="${dryRunMode} ? 'Dry Run' : 'LIVE'"
+                            th:class="${dryRunMode} ? 'text-warning' : 'text-danger'"></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon bg-info bg-opacity-25 text-info me-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Market</h6>
+                        <h4 class="mb-0 text-info">NSE/BSE</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon bg-success bg-opacity-25 text-success me-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <path d="m7.5 4.21 4.5 2.6 4.5-2.6"/>
+                            <path d="M7.5 19.79V14.6L3 12"/>
+                            <path d="M21 12l-4.5 2.6v5.19"/>
+                            <path d="M3.27 6.96 12 12.01l8.73-5.05"/>
+                            <path d="M12 22.08V12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">AI Model</h6>
+                        <h4 class="mb-0 text-success">Claude</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon bg-purple bg-opacity-25 text-purple me-3" style="background: rgba(147, 51, 234, 0.25); color: #a855f7;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Watchlist</h6>
+                        <h4 class="mb-0" id="watchlistCount">Loading...</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <h5 class="text-muted mb-3">Quick Actions</h5>
+        </div>
+        <div class="col-md-4">
+            <a href="/analysis" class="card quick-action text-decoration-none h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" class="text-primary">
+                            <path d="M3 3v18h18"/>
+                            <path d="m19 9-5 5-4-4-3 3"/>
+                        </svg>
+                    </div>
+                    <h5 class="text-light">Analyze Stock</h5>
+                    <p class="text-muted mb-0">Get AI-powered technical analysis</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/market-data" class="card quick-action text-decoration-none h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" class="text-info">
+                            <rect width="18" height="18" x="3" y="3" rx="2"/>
+                            <path d="M3 9h18"/>
+                            <path d="M9 21V9"/>
+                        </svg>
+                    </div>
+                    <h5 class="text-light">View Market Data</h5>
+                    <p class="text-muted mb-0">Fetch OHLCV candles and option chains</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/orders" class="card quick-action text-decoration-none h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" class="text-warning">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <h5 class="text-light">Place Orders</h5>
+                    <p class="text-muted mb-0">Buy, sell, and manage orders</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Popular Stocks -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Popular Stocks</h5>
+                    <span class="badge bg-secondary">Quick Access</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Token</th>
+                                <th>Exchange</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td><strong>RELIANCE</strong></td>
+                                <td><code>2885</code></td>
+                                <td>NSE</td>
+                                <td>
+                                    <a href="/analysis?symbol=RELIANCE&token=2885"
+                                       class="btn btn-sm btn-outline-primary">Analyze</a>
+                                    <a href="/market-data?symbol=RELIANCE&token=2885"
+                                       class="btn btn-sm btn-outline-info">Data</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>TCS</strong></td>
+                                <td><code>11536</code></td>
+                                <td>NSE</td>
+                                <td>
+                                    <a href="/analysis?symbol=TCS&token=11536" class="btn btn-sm btn-outline-primary">Analyze</a>
+                                    <a href="/market-data?symbol=TCS&token=11536" class="btn btn-sm btn-outline-info">Data</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>INFY</strong></td>
+                                <td><code>1594</code></td>
+                                <td>NSE</td>
+                                <td>
+                                    <a href="/analysis?symbol=INFY&token=1594" class="btn btn-sm btn-outline-primary">Analyze</a>
+                                    <a href="/market-data?symbol=INFY&token=1594" class="btn btn-sm btn-outline-info">Data</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>HDFCBANK</strong></td>
+                                <td><code>1333</code></td>
+                                <td>NSE</td>
+                                <td>
+                                    <a href="/analysis?symbol=HDFCBANK&token=1333"
+                                       class="btn btn-sm btn-outline-primary">Analyze</a>
+                                    <a href="/market-data?symbol=HDFCBANK&token=1333"
+                                       class="btn btn-sm btn-outline-info">Data</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>ICICIBANK</strong></td>
+                                <td><code>4963</code></td>
+                                <td>NSE</td>
+                                <td>
+                                    <a href="/analysis?symbol=ICICIBANK&token=4963"
+                                       class="btn btn-sm btn-outline-primary">Analyze</a>
+                                    <a href="/market-data?symbol=ICICIBANK&token=4963"
+                                       class="btn btn-sm btn-outline-info">Data</a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+<script th:inline="javascript">
+    // Load watchlist count on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadWatchlistCount();
+    });
+
+    async function loadWatchlistCount() {
+        try {
+            const response = await fetch('/api/watchlist/count');
+            const result = await response.json();
+            
+            if (result.success) {
+                const count = result.data;
+                const countElement = document.getElementById('watchlistCount');
+                countElement.textContent = count + ' stocks';
+                
+                // Make it clickable to go to watchlist
+                countElement.style.cursor = 'pointer';
+                countElement.addEventListener('click', function() {
+                    window.location.href = '/watchlist';
+                });
+            }
+        } catch (error) {
+            console.error('Error loading watchlist count:', error);
+            document.getElementById('watchlistCount').textContent = 'N/A';
+        }
+    }
+</script>
+</body>
+</html>

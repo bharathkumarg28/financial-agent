@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Financial Agent India</title>
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css">
+    <style>
+        :root { --bs-body-bg: #1a1d21; --bs-body-color: #e9ecef; }
+        body { background: linear-gradient(135deg, #1a1d21 0%, #2d3436 100%); min-height: 100vh; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .card-header { background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="d-flex flex-column">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container py-4 flex-grow-1">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 fw-bold">Settings</h1>
+            <p class="text-muted">Configuration and connection status</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- AngelOne Connection Status - Automatic -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">AngelOne Connection</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <strong>Automatic Connection Management</strong><br>
+                        AngelOne connection is established automatically when you log in and disconnected when you log
+                        out.
+                    </div>
+                    <p class="text-muted mb-0">
+                        Connection to AngelOne SmartAPI is handled automatically during login/logout.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Mode -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Mode</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span th:if="${dryRunMode}" class="badge bg-warning fs-6">DRY RUN</span>
+                        <span th:unless="${dryRunMode}" class="badge bg-danger fs-6">LIVE</span>
+                    </div>
+                    <p class="text-muted mb-2">
+                        <span th:if="${dryRunMode}">Orders are simulated. No real trades will be executed.</span>
+                        <span th:unless="${dryRunMode}">Orders are LIVE. Real trades will be executed with real money!</span>
+                    </p>
+                    <p class="text-muted small mb-0">
+                        To change this, set <code>order.dry-run</code> in <code>application.yml</code> or
+                        environment variable <code>ORDER_DRY_RUN</code>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- UI Credentials -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">UI Login Credentials</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div id="credentialsStatus" class="d-flex align-items-center">
+                            <span id="uiLoginBadge" class="badge bg-secondary me-2">Checking...</span>
+                            <span id="credentialsBadge" class="badge bg-secondary me-2">No Credentials</span>
+                            <span id="authBadge" class="badge bg-secondary">Not Authenticated</span>
+                        </div>
+                    </div>
+                    <form id="credentialsForm">
+                        <div class="mb-3">
+                            <label for="clientId" class="form-label">Client ID</label>
+                            <input type="text" class="form-control" id="clientId" placeholder="Your AngelOne ClientId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" placeholder="Your AngelOne PIN"
+                                   required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="totpSecret" class="form-label">TOTP Secret</label>
+                            <input type="password" class="form-control" id="totpSecret" placeholder="Base32 TOTP secret" required>
+                            <div class="form-text">Get this from AngelOne SmartAPI → Enable TOTP</div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Set Credentials</button>
+                            <button type="button" id="clearCredentialsBtn" class="btn btn-outline-secondary">Clear
+                            </button>
+                        </div>
+                    </form>
+                    <div class="alert alert-info mt-3 mb-0" role="alert">
+                        <strong>Note:</strong> UI login must be enabled in <code>application.yml</code> by setting
+                        <code>angelone.enable-ui-login: true</code>.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Endpoints -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">API Endpoints</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                            <tr>
+                                <th>Endpoint</th>
+                                <th>Method</th>
+                                <th>Description</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td><code>/api/connection/connect</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>Authenticate with AngelOne SmartAPI</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/connection/status</code></td>
+                                <td><span class="badge bg-primary">GET</span></td>
+                                <td>Check connection status</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/connection/disconnect</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>Clear session and disconnect</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/market/candles</code></td>
+                                <td><span class="badge bg-primary">GET</span></td>
+                                <td>Fetch OHLCV candle data</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/market/options</code></td>
+                                <td><span class="badge bg-primary">GET</span></td>
+                                <td>Fetch option chain data</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/analysis/basic</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>AI analysis using price data only</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/analysis/with-options</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>AI analysis with options chain</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/orders/buy/market</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>Place market buy order</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/orders/buy/limit</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>Place limit buy order</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/orders/sell/market</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>Place market sell order</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/orders/sell/limit</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>Place limit sell order</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/orders/stoploss</code></td>
+                                <td><span class="badge bg-success">POST</span></td>
+                                <td>Place stop-loss order</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/orders/{orderId}/status</code></td>
+                                <td><span class="badge bg-primary">GET</span></td>
+                                <td>Check order status</td>
+                            </tr>
+                            <tr>
+                                <td><code>/api/orders/{orderId}</code></td>
+                                <td><span class="badge bg-danger">DELETE</span></td>
+                                <td>Cancel an order</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Symbol Tokens Reference -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Common Symbol Tokens</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-dark table-sm mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Token</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>RELIANCE</td>
+                                    <td><code>2885</code></td>
+                                </tr>
+                                <tr>
+                                    <td>TCS</td>
+                                    <td><code>11536</code></td>
+                                </tr>
+                                <tr>
+                                    <td>INFY</td>
+                                    <td><code>1594</code></td>
+                                </tr>
+                                <tr>
+                                    <td>HDFCBANK</td>
+                                    <td><code>1333</code></td>
+                                </tr>
+                                <tr>
+                                    <td>ICICIBANK</td>
+                                    <td><code>4963</code></td>
+                                </tr>
+                                <tr>
+                                    <td>TITAN</td>
+                                    <td><code>3506</code></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-dark table-sm mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Token</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>SBIN</td>
+                                    <td><code>3045</code></td>
+                                </tr>
+                                <tr>
+                                    <td>BHARTIARTL</td>
+                                    <td><code>10604</code></td>
+                                </tr>
+                                <tr>
+                                    <td>ITC</td>
+                                    <td><code>1660</code></td>
+                                </tr>
+                                <tr>
+                                    <td>KOTAKBANK</td>
+                                    <td><code>1922</code></td>
+                                </tr>
+                                <tr>
+                                    <td>HINDUNILVR</td>
+                                    <td><code>1394</code></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    // AngelOne connection is now handled automatically during login/logout
+
+    // Credentials management
+    async function updateCredentialsStatus() {
+        try {
+            const response = await fetch('/api/credentials/status', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.success) {
+                const status = data.data;
+                const uiLoginBadge = document.getElementById('uiLoginBadge');
+                const credentialsBadge = document.getElementById('credentialsBadge');
+                const authBadge = document.getElementById('authBadge');
+                const credentialsForm = document.getElementById('credentialsForm');
+
+                // Update UI login badge
+                if (status.uiLoginEnabled) {
+                    uiLoginBadge.textContent = 'UI Login Enabled';
+                    uiLoginBadge.className = 'badge bg-success me-2';
+                    credentialsForm.style.display = 'block';
+                } else {
+                    uiLoginBadge.textContent = 'UI Login Disabled';
+                    uiLoginBadge.className = 'badge bg-secondary me-2';
+                    credentialsForm.style.display = 'none';
+                }
+
+                // Update credentials badge
+                if (status.hasCredentials) {
+                    credentialsBadge.textContent = 'Credentials Set';
+                    credentialsBadge.className = 'badge bg-info me-2';
+                } else {
+                    credentialsBadge.textContent = 'No Credentials';
+                    credentialsBadge.className = 'badge bg-warning me-2';
+                }
+
+                // Update auth badge
+                if (status.isAuthenticated) {
+                    authBadge.textContent = 'Authenticated';
+                    authBadge.className = 'badge bg-success';
+                } else {
+                    authBadge.textContent = 'Not Authenticated';
+                    authBadge.className = 'badge bg-secondary';
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch credentials status:', error);
+        }
+    }
+
+    // Set credentials
+    document.getElementById('credentialsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Setting...';
+
+        try {
+            const response = await fetch('/api/credentials/set', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    clientId: document.getElementById('clientId').value,
+                    password: document.getElementById('password').value,
+                    totpSecret: document.getElementById('totpSecret').value
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(data.message, 'success');
+                this.reset();
+                await updateCredentialsStatus();
+
+                // Auto-connect after setting credentials
+                setTimeout(async () => {
+                    showToast('Connecting to AngelOne...', 'info');
+                    const connectResponse = await fetch('/api/connection/connect', { method: 'POST' });
+                    const connectData = await connectResponse.json();
+
+                    if (connectData.success) {
+                        showToast('Connected successfully! Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1500);
+                    } else {
+                        showToast(connectData.error || 'Connection failed', 'danger');
+                    }
+                }, 1000);
+            } else {
+                showToast(data.error || 'Failed to set credentials', 'danger');
+            }
+        } catch (error) {
+            showToast(error.message, 'danger');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Set Credentials';
+        }
+    });
+
+    // Clear credentials
+    document.getElementById('clearCredentialsBtn').addEventListener('click', async function() {
+        if (!confirm('Are you sure you want to clear the credentials?')) {
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Clearing...';
+
+        try {
+            const response = await fetch('/api/credentials/clear', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(data.message, 'info');
+                await updateCredentialsStatus();
+            } else {
+                showToast(data.error || 'Failed to clear credentials', 'danger');
+            }
+        } catch (error) {
+            showToast(error.message, 'danger');
+        } finally {
+            this.disabled = false;
+            this.textContent = 'Clear';
+        }
+    });
+
+    // Initialize status on page load
+    updateCredentialsStatus();
+</script>
+</body>
+</html>

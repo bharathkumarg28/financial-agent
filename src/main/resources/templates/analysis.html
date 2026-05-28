@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis - Financial Agent India</title>
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css">
+    <style>
+        :root { --bs-body-bg: #1a1d21; --bs-body-color: #e9ecef; }
+        body { background: linear-gradient(135deg, #1a1d21 0%, #2d3436 100%); min-height: 100vh; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .card-header { background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .analysis-result { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .trend-bullish { color: #00d26a; }
+        .trend-bearish { color: #ff4757; }
+        .trend-sideways { color: #ffa502; }
+        .metric-card { border-left: 3px solid; padding-left: 1rem; }
+        .metric-card.support { border-color: #00d26a; }
+        .metric-card.resistance { border-color: #ff4757; }
+        .metric-card.volume { border-color: #3498db; }
+        pre { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; overflow-x: auto; }
+    </style>
+</head>
+<body class="d-flex flex-column">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container py-4 flex-grow-1">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-6 fw-bold">Stock Analysis</h1>
+            <p class="text-muted">AI-powered technical analysis using Claude</p>
+        </div>
+    </div>
+
+    <!-- Analysis Form -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Analyze Stock</h5>
+                </div>
+                <div class="card-body">
+                    <form id="analysisForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Stock Symbol</label>
+                                <input type="text" class="form-control bg-dark text-light border-secondary"
+                                       id="symbol" name="symbol" value="RELIANCE" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Symbol Token</label>
+                                <input type="text" class="form-control bg-dark text-light border-secondary"
+                                       id="token" name="token" value="2885" required>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="includeOptions">
+                                    <label class="form-check-label" for="includeOptions">
+                                        Include Options Chain Analysis
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary" id="analyzeBtn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                         fill="none" stroke="currentColor" stroke-width="2" class="me-2">
+                                        <path d="M3 3v18h18"/>
+                                        <path d="m19 9-5 5-4-4-3 3"/>
+                                    </svg>
+                                    Analyze
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Select</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-outline-secondary quick-stock" data-symbol="RELIANCE" data-token="2885">
+                            RELIANCE
+                        </button>
+                        <button class="btn btn-outline-secondary quick-stock" data-symbol="TCS" data-token="11536">TCS
+                        </button>
+                        <button class="btn btn-outline-secondary quick-stock" data-symbol="INFY" data-token="1594">
+                            INFY
+                        </button>
+                        <button class="btn btn-outline-secondary quick-stock" data-symbol="HDFCBANK" data-token="1333">
+                            HDFCBANK
+                        </button>
+                        <button class="btn btn-outline-secondary quick-stock" data-symbol="ICICIBANK" data-token="4963">
+                            ICICIBANK
+                        </button>
+                        <button class="btn btn-outline-secondary quick-stock" data-symbol="SBIN" data-token="3045">
+                            SBIN
+                        </button>
+                        <button class="btn btn-outline-secondary quick-stock" data-symbol="BHARTIARTL"
+                                data-token="10604">BHARTIARTL
+                        </button>
+                        <button class="btn btn-outline-secondary quick-stock" data-symbol="ITC" data-token="1660">ITC
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="row mb-4 d-none">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <h5>Analyzing <span id="loadingSymbol">RELIANCE</span>...</h5>
+                    <p class="text-muted mb-0">Fetching data and sending to Claude for analysis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div id="resultsSection" class="d-none">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card analysis-result">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <span id="resultSymbol">RELIANCE</span> Analysis Report
+                        </h5>
+                        <span id="optionsBadge" class="badge bg-info d-none">With Options</span>
+                    </div>
+                    <div class="card-body">
+                        <!-- Trend & Confidence -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Trend</h6>
+                                <h2 id="resultTrend" class="trend-bullish">BULLISH</h2>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Confidence</h6>
+                                <h2 id="resultConfidence">High</h2>
+                            </div>
+                        </div>
+
+                        <!-- Key Metrics -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="metric-card support">
+                                    <h6 class="text-muted">Support</h6>
+                                    <h4 id="resultSupport">₹0.00</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="metric-card resistance">
+                                    <h6 class="text-muted">Resistance</h6>
+                                    <h4 id="resultResistance">₹0.00</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="metric-card volume">
+                                    <h6 class="text-muted">Avg Volume</h6>
+                                    <h4 id="resultVolume">0</h4>
+                                    <small id="resultVolumeTrend" class="text-muted">Stable</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Options Section (conditional) -->
+                        <div id="optionsSection" class="row mb-4 d-none">
+                            <div class="col-12">
+                                <h5 class="mb-3">Options Analysis</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted">Options Sentiment</h6>
+                                <h5 id="resultOptionsSentiment">-</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted">IV Level</h6>
+                                <h5 id="resultIV">-</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted">PCR Signal</h6>
+                                <h5 id="resultPCR">-</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted">Max Pain</h6>
+                                <h5 id="resultMaxPain">-</h5>
+                            </div>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Summary</h5>
+                                <p id="resultSummary" class="lead"></p>
+                            </div>
+                            <div id="optionsInsightSection" class="col-12 d-none">
+                                <h5>Options Insight</h5>
+                                <p id="resultOptionsInsight"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="row mb-4 d-none">
+        <div class="col-12">
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">Analysis Failed</h5>
+                <p id="errorMessage" class="mb-0"></p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('analysisForm');
+        const symbolInput = document.getElementById('symbol');
+        const tokenInput = document.getElementById('token');
+        const includeOptions = document.getElementById('includeOptions');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+
+        // Quick stock selection
+        document.querySelectorAll('.quick-stock').forEach(btn => {
+            btn.addEventListener('click', function() {
+                symbolInput.value = this.dataset.symbol;
+                tokenInput.value = this.dataset.token;
+            });
+        });
+
+        // URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('symbol')) symbolInput.value = urlParams.get('symbol');
+        if (urlParams.has('token')) tokenInput.value = urlParams.get('token');
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const symbol = symbolInput.value.trim().toUpperCase();
+            const token = tokenInput.value.trim();
+            const withOptions = includeOptions.checked;
+
+            // Show loading
+            document.getElementById('loadingState').classList.remove('d-none');
+            document.getElementById('loadingSymbol').textContent = symbol;
+            document.getElementById('resultsSection').classList.add('d-none');
+            document.getElementById('errorState').classList.add('d-none');
+            analyzeBtn.disabled = true;
+
+            try {
+                const endpoint = withOptions
+                    ? `/api/analysis/with-options?symbol=${symbol}&token=${token}`
+                    : `/api/analysis/basic?symbol=${symbol}&token=${token}`;
+
+                const response = await fetch(endpoint, { method: 'POST' });
+                const data = await response.json();
+
+                document.getElementById('loadingState').classList.add('d-none');
+
+                if (data.success && data.data) {
+                    displayResults(data.data, withOptions);
+                } else {
+                    showError(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                document.getElementById('loadingState').classList.add('d-none');
+                showError(error.message);
+            } finally {
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data, withOptions) {
+            const analysis = data.analysis;
+
+            document.getElementById('resultSymbol').textContent = data.symbol;
+            document.getElementById('resultTrend').textContent = analysis.trendDirection?.toUpperCase() || 'N/A';
+            document.getElementById('resultTrend').className = `trend-${analysis.trendDirection?.toLowerCase() || 'sideways'}`;
+            document.getElementById('resultConfidence').textContent = capitalize(analysis.confidenceLevel);
+            document.getElementById('resultSupport').textContent = formatCurrency(analysis.supportLevel);
+            document.getElementById('resultResistance').textContent = formatCurrency(analysis.resistanceLevel);
+            document.getElementById('resultVolume').textContent = formatNumber(analysis.averageVolume);
+            document.getElementById('resultVolumeTrend').textContent = capitalize(analysis.volumeTrend);
+            document.getElementById('resultSummary').textContent = analysis.analysisSummary;
+
+            // Options data
+            if (withOptions && data.optionsIncluded) {
+                document.getElementById('optionsBadge').classList.remove('d-none');
+                document.getElementById('optionsSection').classList.remove('d-none');
+                document.getElementById('optionsInsightSection').classList.remove('d-none');
+
+                document.getElementById('resultOptionsSentiment').textContent =
+                    analysis.optionsSentiment?.toUpperCase() || 'N/A';
+                document.getElementById('resultIV').textContent = analysis.ivPercentile || 'N/A';
+                document.getElementById('resultPCR').textContent = analysis.pcrSignal || 'N/A';
+                document.getElementById('resultMaxPain').textContent =
+                    analysis.maxPainStrike ? formatCurrency(analysis.maxPainStrike) : 'N/A';
+                document.getElementById('resultOptionsInsight').textContent =
+                    analysis.optionsInsight || 'N/A';
+            } else {
+                document.getElementById('optionsBadge').classList.add('d-none');
+                document.getElementById('optionsSection').classList.add('d-none');
+                document.getElementById('optionsInsightSection').classList.add('d-none');
+            }
+
+            document.getElementById('resultsSection').classList.remove('d-none');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorState').classList.remove('d-none');
+        }
+
+        function formatCurrency(value) {
+            if (!value) return '₹0.00';
+            return '₹' + Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatNumber(value) {
+            if (!value) return '0';
+            return Number(value).toLocaleString('en-IN');
+        }
+
+        function capitalize(str) {
+            if (!str) return 'N/A';
+            return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+        }
+    });
+</script>
+</body>
+</html>
