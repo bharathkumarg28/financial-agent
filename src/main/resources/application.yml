@@ -72,7 +72,7 @@ twilio:
 
 # Telegram Bot Configuration
 telegram:
-  bot-token: 8684831505:AAGB2avO60v5LfcFr249IbvXj2Of5uRrn8o
+  bot-token: {ADD_YOUR_TOKEN_HERE}
   enabled: true
 
 logging:
